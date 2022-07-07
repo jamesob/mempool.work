@@ -67,12 +67,12 @@ should not be wasted on spam.
 
 The mempool should be designed in such a way that it is maximally useful for
 miners when choosing transactions to include in blocks. If it is not, miners'
-mempool implementations will differ from regular nodes (to be revenue
-maximizing) and bitcoind users will not have an accurate impression of miner
-mempool contents, impairing their ability to estimate market feerates and get
-transactions confirmed.
+mempool implementations will at some point likely differ from non-mining nodes
+(to be revenue maximizing) and bitcoind users will not have an accurate
+impression of miner mempool contents, impairing their ability to estimate
+market feerates and get transactions confirmed.
 
-Note that in the limit, miner mempool design will likely diverge from "regular"
+Note that in the limit, miner mempool design will likely diverge from non-mining
 nodes because of the computationally complexity of optimally knapsack-solving
 for the most profitable block (NP-hard). This divergence likely won't happen
 until miner revenue from fees surpasses revenue from the block subsidy.
@@ -115,7 +115,21 @@ a situation.
 Attacks are behaviors in the current mempool design that could be used by
 malicious actors to exploit applications built on top of Bitcoin.
 
+## `miner-mapping`
+
+- [Mentioned in @ariard ML post](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html)
+
+Regions of the network that feed into major miners' mempools could be identified
+by the following technique: `n` conflicting variations of a given transaction
+could be created and then broadcast to different peers. Each time one of the variants
+is mined, that identifies a peer which affects the mempool composition of a
+miner. 
+
+In this way, P2P network topology can be discovered and leveraged during a
+mempool-based attack.
+
 ## `fee-pinning`
+
 
 Fee pinning is an attack in which a malicious actor is able to "pin" a
 transaction to the bottom of the mempool (in terms of mining attractiveness)
@@ -132,6 +146,8 @@ Pinning prevents the dynamic adjustment of fees via `rbf` or `cpfp`.
 
 #### `pin-by-anyonecanpay`
 
+- [Described in @glozow's RBF Improvements post](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4058140#sighash_anyonecanpay-pinning)
+
 `SIGHASH_ANYONECANPAY`: the `SIGHASH_ANYONECANPAY` flag allows any user to
 reuse signatures unlocking inputs while adding additional inputs to a new
 transaction (which reuses the original inputs). 
@@ -144,11 +160,10 @@ assemblies contain this low feerate version of the transaction, pinning it,
 even in the presence of the "honest" higher feerate transaction elsewhere on
 the network.
 
-- More information: 
-
 #### `pin-by-descendants`
 
-(Fixed by `cpfp-carveout`)
+- Fixed for two-party contracts by `cpfp-carveout`
+- [Described in CPFP carveout post by BlueMatt](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-November/016518.html)
 
 Because there are various limits on how many descendants a transaction can
 have, as well as the total size of those descendants, participants in a
@@ -158,38 +173,29 @@ counterparty will not be able to bump fees using CPFP - though this has now
 been fixed by [the CPFP carveout
 change](https://bitcoinops.org/en/topics/cpfp-carve-out/).
 
+Note that the CPFP-carveout only resolves this pinning vector for two-party
+contracts. More outputs than two could reopen the ability to pin, since the
+carveout only allows for one extra child feebump.
 
 
 #### Lightning attacks
-
-Various pinning attacks are described by @ariard [in this
+     
+- Various pinning attacks are described by @ariard [in this
 post](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html).
 
 
 
 ## Mempool siphoning: `feerate-mempool-siphon`
 
-Mentioned here: https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4081417#gistcomment-4081417
+- Hypothetical (contingent on removal of RBF rule 3)
+- [Described here](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4081417#gistcomment-4081417)
 
-Naively, rule #3 of RBF (higher absolute fee required for a replacment) seems
-undesirable. If a surrogate replacement transaction can pay a higher feerate
-but lower absolute fee, it indicates that a *smaller* equivalent transaction is
-suitable to the transactor(s), consuming less chainstate, which is a common
-good for the network. Though note that under certain unusual circumstances,
-this may not be `incentive-compatible` for miners - namely if the surrogate
-transactions which fill in the extra block space yielded by the replacement
-transaction do not pay as much as the original absolute fee.
-
-In any case, it is tempting to remove rule #3, since in the average case
-replacement of a higher feerate transaction benefits everyone. However, the
-relaxation of this rule would allow an attack.
-
-If rule #3 were removed, an attacker could broadcast, say, 300MB of large
+If RBF rule #3 were removed, an attacker could broadcast, say, 300MB of large
 transactions which have a higher feerate than anything in the mempool.
 Subsequently, all transactions currently in the mempool would be evicted in
 nodes operating under default mempool settings. The attacker could then replace
 these needlessly large transactions which much smaller transactions that pay a
-higher feerate (but lower absolute fees). 
+higher feerate (but lower absolute fees) via RBF. 
 
 So, if rule 3 were removed, an attacker would be able to exhaust the
 mempools of the network for a known (and probably relatively low) cost.
@@ -199,7 +205,8 @@ mempools of the network for a known (and probably relatively low) cost.
 
 ## Package relay
 
-Mailing-list: https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-May/020493.html
+- [Mailing-list post (2022 May)](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-May/020493.html)
+- [Draft implementation]()
 
 Currently, the P2P network relays individual transactions, creating a situation
 in which transactions which do not surpass the `mempool-min-fee` cannot be broadcast, 
@@ -213,9 +220,8 @@ they suffer the `presigned-feerate-too-low` failure.
 
 ## BlueMatt/sdaftuar voluntary child-size limit
 
-Mentioned here: https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4058140#gistcomment-4058140
-
-Implementation here: https://github.com/glozow/bitcoin/commit/b22afa034135f41e33b075e4698d35ec33fe2585
+- [Mentioned here](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4058140#gistcomment-4058140)
+- [Implementation here](https://github.com/glozow/bitcoin/commit/b22afa034135f41e33b075e4698d35ec33fe2585)
 
 > An alternative idea, from talking to @TheBlueMatt today: we could set a bit
 > in a transaction that means "do not accept more than X vbytes worth of
@@ -241,9 +247,26 @@ Implementation here: https://github.com/glozow/bitcoin/commit/b22afa034135f41e33
 
 
 ## Removing RBF rule 3
+
+Naively, rule #3 of RBF (higher absolute fee required for a replacment) seems
+undesirable. If a surrogate replacement transaction can pay a higher feerate
+but lower absolute fee, it indicates that a *smaller* equivalent transaction is
+suitable to the transactor(s), consuming less chainstate, which is a common
+good for the network. Though note that under certain unusual circumstances,
+this may not be `incentive-compatible` for miners - namely if the surrogate
+transactions which fill in the extra block space yielded by the replacement
+transaction do not pay as much as the original absolute fee.
+
+In any case, it is tempting to remove rule #3, since in the average case
+replacement of a higher feerate transaction benefits everyone. However, the
+relaxation of this rule would allow the siphoning attack mentioned above.
+
   - Add delay propogation to avoid bandwidth DoS: https://lists.linuxfoundation.org/pipermail/lightning-dev/2018-June/001316.html
 
 ## Transaction sponsors
+
+- [ML post by Jeremy Rubin](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2020-September/018168.html)
+- [Implementation](https://github.com/bitcoin/bitcoin/compare/master...JeremyRubin:subsidy-tx)
 
 
 # Links
@@ -251,3 +274,4 @@ Implementation here: https://github.com/glozow/bitcoin/commit/b22afa034135f41e33
 - @ariard's Pinning: The Good, The Bad, The Ugly: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html
 - @glozow's proposed removal of RBF rule 2: https://github.com/bitcoin/bitcoin/pull/23121
 - @glozow's proposed RBF improvements: https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff
+- @glozow's pinning zoo: https://github.com/glozow/bitcoin-notes/blob/master/pinning.md
