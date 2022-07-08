@@ -3,21 +3,25 @@ in mempool design. It documents the existing design, failures, and vulnerabiliti
 of the mempool as well as some proposals that exist to remedy the shortcomings.
 
 - [Assumptions](#assumptions)
-- [Mempool acceptance constraints](mMempool-acceptance-constraints)
-- [Concepts](#concepts)
+- [Mempool acceptance constraints](#mempool-acceptance-constraints)
+- [Established concepts](#established-concepts)
   - Important guiding concepts within mempool design
 - [Failures](#failures)
 - [Attacks](#attacks)
 - [Proposals](#proposals)
 
+First we describe the existing state of the mempool by way of existing
+contraints, failure modes, and attacks. Then in [Proposals](#proposals) we 
+discuss various measures that are yet to be implemented.
 
-# Assumptions
+
+## Assumptions
 
 This document assumes familiarity with the concepts of [ancestors, descendants,](https://github.com/bitcoin/bitcoin/blob/master/doc/policy/mempool-limits.md#definitions)
 [CPFP](https://bitcoinops.org/en/topics/cpfp/), [RBF](https://bitcoinops.org/en/topics/replace-by-fee/).
 
 
-# Mempool acceptance constraints
+## Mempool acceptance constraints
 
 Here are some notable constraints that affect whether a transaction will be accepted to
 the mempool or propagated throughout the network. 
@@ -35,16 +39,16 @@ the mempool or propagated throughout the network.
 | `rbf1`     | If RBFing, replaced txn must signal with nSequence | - | [BIP 125](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) |
 | `rbf2`     | If RBFing, replacement cannot have new unconfirmed inputs | - | - |
 | `rbf3`     | If RBFing, replacement must have absolute fee > replaced tx | - | - |
-| `rbf4`     | If RBFing, replacement must pay for its own relay per minRelayFee | - | - |
+| `rbf4`     | If RBFing, replacement must pay for its own relay per `min-relay-fee` | - | - |
 | `rbf5`     | If RBFing, transaction to be evicted + descendants cannot total more than 100| - | - |
 | `cpfp-carveout`     | Allow a single-ancestor transaction through if it is no larger than 10_000 vbytes and its parent has hit its descendant limits based on another descendant | [validation.cpp](https://github.com/jamesob/bitcoin/blob/be6d4315c150646cf672778e9232f086403e95df/src/validation.cpp#L897-L911) | - |
 
-# Concepts
+## Established concepts
 
 Various concepts have governed mempool design so far, and should be taken
 into consideration when understanding attacks and assessing proposals.
 
-## TANSTAAGM
+### `TANSTAAGM`
 
 "There ain't no such thing as a global mempool." The network's view of the
 current contents of the mempool is not guaranteed to be consistent and can
@@ -57,13 +61,13 @@ into having separate mempool content, including broadcasting conflicting
 transactions simultaneously [as outlined
 here](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html).
 
-## Mempool design: avoid free relay
+### Mempool design: `no-free-relay`
 
 Gossiping transactions over the P2P network costs bandwidth. This bandwidth 
 should not be wasted on spam.
 
 
-## Mempool design: incentive compatibility
+### Mempool design: `incentive-compatibility`
 
 The mempool should be designed in such a way that it is maximally useful for
 miners when choosing transactions to include in blocks. If it is not, miners'
@@ -78,13 +82,15 @@ for the most profitable block (NP-hard). This divergence likely won't happen
 until miner revenue from fees surpasses revenue from the block subsidy.
 
 
-# Failures
+## Failures
 
 "Failures" are considered undesirable behaviors that result from shortcomings
 in the current design of the mempool; they are distinguished from attacks in
-that they aren't 
+that they need not be consciously exploited by an attacker to result in the
+undesirable behavior.
 
-## `presigned-feerate-too-low`
+
+### Failure: `presigned-feerate-too-low`
 
 In certain applications, a key which later becomes inaccessible may be used to
 presign transactions that will at some point be broadcast, essentially turning
@@ -110,12 +116,12 @@ For this reason, `pacakgeRelay` is a necessary change to avoid failure in such
 a situation.
 
 
-# Attacks
+## Attacks
 
 Attacks are behaviors in the current mempool design that could be used by
 malicious actors to exploit applications built on top of Bitcoin.
 
-## `miner-mapping`
+### Attack: `miner-mapping`
 
 - [Mentioned in @ariard ML post](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html)
 
@@ -128,7 +134,7 @@ miner.
 In this way, P2P network topology can be discovered and leveraged during a
 mempool-based attack.
 
-## `fee-pinning`
+### Attack: `fee-pinning`
 
 
 Fee pinning is an attack in which a malicious actor is able to "pin" a
@@ -142,9 +148,9 @@ the contract.
 
 Pinning prevents the dynamic adjustment of fees via `rbf` or `cpfp`.
 
-### Examples
+#### Examples
 
-#### `pin-by-anyonecanpay`
+##### `pin-by-anyonecanpay`
 
 - [Described in @glozow's RBF Improvements post](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4058140#sighash_anyonecanpay-pinning)
 
@@ -160,7 +166,7 @@ assemblies contain this low feerate version of the transaction, pinning it,
 even in the presence of the "honest" higher feerate transaction elsewhere on
 the network.
 
-#### `pin-by-descendants`
+##### `pin-by-descendants`
 
 - Fixed for two-party contracts by `cpfp-carveout`
 - [Described in CPFP carveout post by BlueMatt](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-November/016518.html)
@@ -178,14 +184,14 @@ contracts. More outputs than two could reopen the ability to pin, since the
 carveout only allows for one extra child feebump.
 
 
-#### Lightning attacks
+##### Lightning attacks
      
 - Various pinning attacks are described by @ariard [in this
 post](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html).
 
 
 
-## Mempool siphoning: `feerate-mempool-siphon`
+### Attack: `feerate-mempool-siphon`
 
 - Hypothetical (contingent on removal of RBF rule 3)
 - [Described here](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4081417#gistcomment-4081417)
@@ -197,16 +203,16 @@ nodes operating under default mempool settings. The attacker could then replace
 these needlessly large transactions which much smaller transactions that pay a
 higher feerate (but lower absolute fees) via RBF. 
 
-So, if rule 3 were removed, an attacker would be able to exhaust the
-mempools of the network for a known (and probably relatively low) cost.
+So, if [rule 3 were removed](#removing-rbf-rule-3), an attacker would be able
+to exhaust the mempools of the network for a known (and probably relatively
+low) cost.
 
 
-# Proposals
+## Proposals
 
-## Package relay
+### Package relay
 
 - [Mailing-list post (2022 May)](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-May/020493.html)
-- [Draft implementation]()
 
 Currently, the P2P network relays individual transactions, creating a situation
 in which transactions which do not surpass the `mempool-min-fee` cannot be broadcast, 
@@ -217,8 +223,22 @@ relayed together.  This would ensure that transactions which require CPFP to
 bump their effective feerate are able to enter mempools to begin with, else
 they suffer the `presigned-feerate-too-low` failure.
 
+There are not any conceptual objections to this proposal, and indeed it is widely
+recognized that package relay is needed. Remaining considerations are P2P protocol
+considerations like
 
-## BlueMatt/sdaftuar voluntary child-size limit
+- how to structure the protocol to avoid DoS vectors (e.g. if a node misreports
+  the existence of transactions or aggregate feerate),
+- whether to commit to the current tip hash within PKG messages,
+- whether packages should necessarily be topologically sorted.
+
+Related pull requests:
+- [Pending] [BIP125-based Package RBF](https://github.com/bitcoin/bitcoin/pull/25038)
+- [Merged] [-regtest-only RPC for testing package acceptance](https://github.com/bitcoin/bitcoin/pull/24836)
+- [Merged] [CPFP fee bumping within packages](https://github.com/bitcoin/bitcoin/pull/24152)
+
+
+### BlueMatt/sdaftuar voluntary child-size limit
 
 - [Mentioned here](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff?permalink_comment_id=4058140#gistcomment-4058140)
 - [Implementation here](https://github.com/glozow/bitcoin/commit/b22afa034135f41e33b075e4698d35ec33fe2585)
@@ -244,9 +264,22 @@ they suffer the `presigned-feerate-too-low` failure.
 >
 > *sdaftuar*
 
+This proposal would potentially fix some pinning vectors associated with
+2-party contracting applications, but would not address fee-bumping needs for
+applications where RBF use is not in scope, e.g. vaults.
 
 
-## Removing RBF rule 3
+#### Alternative: transaction size limit enforced in script
+
+- [Original ML post by Greg Sanders](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-May/020458.html)
+- [OpTech summary of proposal](https://bitcoinops.org/en/newsletters/2022/05/18/#using-transaction-introspection-to-prevent-rbf-pinning)
+
+@instagibbs posted an alternative to the idea above, which is similar but instead
+involves adding an opcode to push the size of the current transaction to the stack,
+allowing script writers to limit the size of the transaction.
+
+
+### Removing RBF rule 3
 
 Naively, rule #3 of RBF (higher absolute fee required for a replacment) seems
 undesirable. If a surrogate replacement transaction can pay a higher feerate
@@ -263,15 +296,63 @@ relaxation of this rule would allow the siphoning attack mentioned above.
 
   - Add delay propogation to avoid bandwidth DoS: https://lists.linuxfoundation.org/pipermail/lightning-dev/2018-June/001316.html
 
-## Transaction sponsors
+### Transaction sponsors
 
 - [ML post by Jeremy Rubin](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2020-September/018168.html)
 - [Implementation](https://github.com/bitcoin/bitcoin/compare/master...JeremyRubin:subsidy-tx)
 
+Transaction sponsors, in concept, allow any user to increase the feerate of any
+transaction by marking a *sponsor transaction* as only being consensus valid if
+mined alongside a certain transaction (i.e. the sponsored). The sponsor txn
+marks itself as a sponsor by setting its last output, probably dust, as having
+the scriptPubKey `[sponsored-txid] OP_VER`.
 
-# Links
-- @t-bast's write-up on pinning attacks: https://github.com/t-bast/lightning-docs/blob/master/pinning-attacks.md
-- @ariard's Pinning: The Good, The Bad, The Ugly: https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html
-- @glozow's proposed removal of RBF rule 2: https://github.com/bitcoin/bitcoin/pull/23121
-- @glozow's proposed RBF improvements: https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff
-- @glozow's pinning zoo: https://github.com/glozow/bitcoin-notes/blob/master/pinning.md
+Objections to the original proposal include:
+
+- introducing a new kind of dependency between transactions,
+- unclear how to avoid pinning of sponsors with suboptimal feerates,
+  - (a sponsor replacement policy would need to be devised to avoid this)
+- requires a consensus change (soft fork).
+
+
+### [conceptual] Unauthenticated feerate-bumps always possible
+
+- [ML post by @jamesob](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-February/019879.html)
+
+Ideally, any user should be able to additively bump the feerate of any
+transaction, regardless of whether or not the transaction anticipated feebumps
+structurally, e.g. being marked RBFable. 
+
+It doesn't make sense to require authentication for feebumps, as the owner of
+the inputs in the txn-to-be-bumped has already authenticated their spend via
+signature. However, the ideal of monotonic, unauthenticated feerate bumps is
+hampered by the real-world issues of
+- avoiding additional bandwidth DoS vectors associated with doing miniscule
+  feerate bumps, causing re-relay and needless eviction of txns, and
+- avoiding the introduction of pinning vectors.
+
+One possible high-level sketch for achieving this is a combination of
+- SIGHASH_GROUP
+  - with the modification that GROUP allows a given input to commit optionally
+    to the last output (see "sponsors" below)
+- transaction sponsors
+  - with the modification that each sponsor input entry must be SIGHASH_GROUP,
+    committing to at least the last output (i.e. the sponsor vector). This allows
+    input/output pairs within the sponsor to be arbitrarily recombined.
+  - allow sponsor replacement on the basis of at least an x% feerate bump. `x`
+    might be required to increase to limit relay.
+
+This would ensure that sponsors are not pinnable, and relay is limited.
+
+A similar proposal could be done without sponsors, simply by having
+transactions make use of SIGHASH_GROUP, but that would require structural
+anticipation on the part of transactions.
+
+## Links
+- [Bitcoin Core docs on mempool policy](https://github.com/bitcoin/bitcoin/tree/master/doc/policy)
+- [@t-bast's write-up on pinning attacks](https://github.com/t-bast/lightning-docs/blob/master/pinning-attacks.md)
+- [@ariard's Pinning: The Good, The Bad, The Ugly](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html)
+- [@glozow's proposed removal of RBF rule 2](https://github.com/bitcoin/bitcoin/pull/23121)
+- [@glozow's proposed RBF improvements](https://gist.github.com/glozow/25d9662c52453bd08b4b4b1d3783b9ff)
+- [@glozow's pinning zoo](https://github.com/glozow/bitcoin-notes/blob/master/pinning.md)
+- [Revault write-up on why they have abandoned dynamic fee bumping](https://github.com/revault/practical-revault/pull/119)
