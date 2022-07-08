@@ -121,6 +121,29 @@ a situation.
 Attacks are behaviors in the current mempool design that could be used by
 malicious actors to exploit applications built on top of Bitcoin.
 
+### Attack: `miner-harvesting`
+
+- [Mentioned in @naumenkogs ML post](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-February/002569.html)
+- [Mentioned in @ariard ML post](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2021-November/019615.html)
+
+A subset of the miners could drop on the floor transaction inclusions to provoke
+artificial congestion during period P. This congestion would be overreacted by the
+fee-bumping algorithms of the Bitcoin applications, especially with time-sensitive
+requirements in a way that the loss of fees during period P compensates for the gain
+during period P+1. It is left as subject of research if future second-layers fee-bumping
+algorithms could be vulnerable to those concerns.
+
+### Attack: `mempool-partitioning`
+
+Opt-in RBF enables to segregate network mempools in different arbitrary subsets.
+From those subsets, a well-provisioned in UTXO value attacker could broadcast
+branch of high-fees child transactions in some target subsets. The targeted
+nodes would observe different mempool feerates from the non-partitioned ones. Other
+policy discrepancies could be leveraged to partition mempools.
+
+It is left as subject of research how it could be a building block in more
+sophisticated attack.
+
 ### Attack: `miner-mapping`
 
 - [Mentioned in @ariard ML post](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-June/002758.html)
