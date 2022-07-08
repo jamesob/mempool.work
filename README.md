@@ -338,7 +338,8 @@ One possible high-level sketch for achieving this is a combination of
 - transaction sponsors
   - with the modification that each sponsor input entry must be SIGHASH_GROUP,
     committing to at least the last output (i.e. the sponsor vector). This allows
-    input/output pairs within the sponsor to be arbitrarily recombined.
+    input/output groups within the sponsor to be arbitrarily conjoined in order
+    to create a highest-feerate replacement transaction.
   - allow sponsor replacement on the basis of at least an x% feerate bump. `x`
     might be required to increase to limit relay.
 
