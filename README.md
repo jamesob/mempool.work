@@ -128,7 +128,7 @@ The highest fee blockspace demand is currently implemented as storing the best c
 transactions spending a UTXO, where "highest fee" is the result of a given replacement
 algorithm. This replacement algorithm might fail to capture the most fee-compelling
 chain of transactions due to aleas in transaction propagations or uncertain order
-of events. This is what 
+of events.
 
 Issues in transaction propagation can result in a high-fee child of a low-fee parent
 not propagating [across the network](https://github.com/bitcoin/bitcoin/issues/14895),
