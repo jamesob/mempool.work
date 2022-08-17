@@ -115,6 +115,62 @@ mempool, there is no parent for the child to descend off of.
 For this reason, `pacakgeRelay` is a necessary change to avoid failure in such
 a situation.
 
+### Failure: `limited-visibility-agent`
+
+Block template providers aim to aggregate the best feerate transactions to maximize
+miner reward. Transaction issuers aim to broadcast blockspace claims at the best
+price matching their liquidity preferences or satisfying their application-specific
+time-sensitive requirements. To perform those functions, all those agents should
+rely on a local or remote mempool aggregating all the known and highest fee blockspace
+demand at instant T across the Bitcoin network.
+
+The highest fee blockspace demand is currently implemented as storing the best chain of
+transactions spending a UTXO, where "highest fee" is the result of a given replacement
+algorithm. This replacement algorithm might fail to capture the most fee-compelling
+chain of transactions due to aleas in transaction propagations or uncertain order
+of events. This is what 
+
+Issues in transaction propagation can result in a high-fee child of a low-fee parent
+not propagating [across the network](https://github.com/bitcoin/bitcoin/issues/14895),
+therefore generating a discrepancy between the ideal mempool state and its real
+content. In theory, this issue should be solved by `packageRelay`.
+
+There could be more reasons than the mempool content deviates from its ideal state.
+First, the spending claims of a UTXO can be competitive like with current LN-penalty
+design, therefore a replacement algorithm might bias in favor of the first-seen or
+non-fee optimal package instead of best existent one. Second, the spending claims of
+a UTXO can be cooperative without interactivity, in the sense that with a batch
+withdrawal from a service, a RBF could evict the initial transaction as the really
+same time a high-fee child is attached to the initial one. Both of those phenomenas are
+not abnormal cases, i.e when the local mempool miss transactions announcement due to
+temporary offliness, and could be expected to generalize more in the future.
+
+It is left as subject of research if there are more existent factors of deviation
+between the ideal mempool state and its real content.
+
+The variety of miner reward outcome in fucntion of the transaction replacement
+strategy is [described by @ajtowns ML post](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2022-February/019921.html)
+
+### Failure: `one-mempool-to-rule-them-all`
+
+If the mempool is envisioned as the meeting place of blockspace demand, it
+should be recalled that there is only one such buffer for the whole Bitcoin
+network (or a crowd of unique buffer because `TANSTAAGM`). This is a significant
+issue in case of technical failures happening for a subset of Bitcoin applications
+reverbated globally. E.g, an Internet disruption in Venezuela could trigger automatic
+and massive force-close of all the channels with unresolved HTLCs in-between
+venezuelians LN nodes and the rest of the LN world.
+
+As the Bitcoin use-cases with liveliness requirements can be expected to generalize
+in the coming future (i.e more deployed Lightning channels or time-sensitive contracts like DLCs)
+and there is an incentive to shorten safety timelocks to increase liquidity velocity,
+it can be thought that failures in the lower Bitcoin stack (e.g block-relay) could be
+overreacted at the mempool-level.
+
+It is left as a subject of research if blockspace demand spreading across network
+mempools could be detected as anomalies due to identified Bitcoin technical reasons
+and if those anomalies could be flat out from fee-estimation algorithms and [liquidity
+management engines](https://github.com/ZmnSCPxj/clboss).
 
 ## Attacks
 
