@@ -11,7 +11,7 @@ of the mempool as well as some proposals that exist to remedy the shortcomings.
 - [Proposals](#proposals)
 
 First we describe the existing state of the mempool by way of existing
-contraints, failure modes, and attacks. Then in [Proposals](#proposals) we 
+constraints, failure modes, and attacks. Then in [Proposals](#proposals) we 
 discuss various measures that are yet to be implemented.
 
 
@@ -112,7 +112,7 @@ Currently, these cases rely on CPFP (child pays for parent) to adjust the feerat
 But because the original transaction's feerate may be too low to even be admitted to the
 mempool, there is no parent for the child to descend off of.
 
-For this reason, `pacakgeRelay` is a necessary change to avoid failure in such
+For this reason, `packageRelay` is a necessary change to avoid failure in such
 a situation.
 
 ### Failure: `limited-visibility-agent`
@@ -141,8 +141,8 @@ design, therefore a replacement algorithm might bias in favor of the first-seen 
 non-fee optimal package instead of best existent one. Second, the spending claims of
 a UTXO can be cooperative without interactivity, in the sense that with a batch
 withdrawal from a service, a RBF could evict the initial transaction as the really
-same time a high-fee child is attached to the initial one. Both of those phenomenas are
-not abnormal cases, i.e when the local mempool miss transactions announcement due to
+same time a high-fee child is attached to the initial one. Both of those phenomena are
+not abnormal cases, i.e. when the local mempool miss transactions announcement due to
 temporary offliness, and could be expected to generalize more in the future.
 
 It is left as subject of research if there are more existent factors of deviation
@@ -157,14 +157,14 @@ If the mempool is envisioned as the meeting place of blockspace demand, it
 should be recalled that there is only one such buffer for the whole Bitcoin
 network (or a crowd of unique buffer because `TANSTAAGM`). This is a significant
 issue in case of technical failures happening for a subset of Bitcoin applications
-reverbated globally. E.g, an Internet disruption in Venezuela could trigger automatic
+reverberated globally. E.g., an Internet disruption in Venezuela could trigger automatic
 and massive force-close of all the channels with unresolved HTLCs in-between
-venezuelians LN nodes and the rest of the LN world.
+venezuelan LN nodes and the rest of the LN world.
 
 As the Bitcoin use-cases with liveliness requirements can be expected to generalize
-in the coming future (i.e more deployed Lightning channels or time-sensitive contracts like DLCs)
+in the coming future (i.e. more deployed Lightning channels or time-sensitive contracts like DLCs)
 and there is an incentive to shorten safety timelocks to increase liquidity velocity,
-it can be thought that failures in the lower Bitcoin stack (e.g block-relay) could be
+it can be thought that failures in the lower Bitcoin stack (e.g. block-relay) could be
 overreacted at the mempool-level.
 
 It is left as a subject of research if blockspace demand spreading across network
@@ -360,7 +360,7 @@ allowing script writers to limit the size of the transaction.
 
 ### Removing RBF rule 3
 
-Naively, rule #3 of RBF (higher absolute fee required for a replacment) seems
+Naively, rule #3 of RBF (higher absolute fee required for a replacement) seems
 undesirable. If a surrogate replacement transaction can pay a higher feerate
 but lower absolute fee, it indicates that a *smaller* equivalent transaction is
 suitable to the transactor(s), consuming less chainstate, which is a common
@@ -373,7 +373,7 @@ In any case, it is tempting to remove rule #3, since in the average case
 replacement of a higher feerate transaction benefits everyone. However, the
 relaxation of this rule would allow the siphoning attack mentioned above.
 
-  - Add delay propogation to avoid bandwidth DoS: https://lists.linuxfoundation.org/pipermail/lightning-dev/2018-June/001316.html
+  - Add delay propagation to avoid bandwidth DoS: https://lists.linuxfoundation.org/pipermail/lightning-dev/2018-June/001316.html
 
 ### Transaction sponsors
 
@@ -406,7 +406,7 @@ It doesn't make sense to require authentication for feebumps, as the owner of
 the inputs in the txn-to-be-bumped has already authenticated their spend via
 signature. However, the ideal of monotonic, unauthenticated feerate bumps is
 hampered by the real-world issues of
-- avoiding additional bandwidth DoS vectors associated with doing miniscule
+- avoiding additional bandwidth DoS vectors associated with doing minuscule
   feerate bumps, causing re-relay and needless eviction of txns, and
 - avoiding the introduction of pinning vectors.
 
